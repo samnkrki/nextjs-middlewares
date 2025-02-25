@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError, ZodType} from 'zod';
+import { asyncLocalStorage } from "./aynclocalstorage";
 // Authentication Middleware
 async function authMiddleware(req: Request) {
     const token = req.headers.get("authorization");
@@ -31,17 +32,18 @@ function validationMiddleware<
         query,
         params,
       };
-
+      const returnData: {body?:TBody, query?: TQuery, params?: TParams} = {};
       if (schema.body) {
-        schema.body.parse(dataToValidate.body); // Validate body
+        returnData.body = schema.body.parse(dataToValidate.body); // Validate body
       }
       if (schema.query) {
-        schema.query.parse(dataToValidate.query); // Validate query
+        returnData.query = schema.query.parse(dataToValidate.query); // Validate query
       }
       if (schema.params) {
-        schema.params.parse(dataToValidate.params); // Validate params
+        returnData.params = schema.params.parse(dataToValidate.params); // Validate params
       }
-
+      const store = asyncLocalStorage.getStore();
+      store?.set("reqData", returnData);
       return req; // If validation is successful, continue the request
     } catch (error: unknown) {
       if (error instanceof ZodError) {
